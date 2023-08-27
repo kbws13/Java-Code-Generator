@@ -3,7 +3,7 @@ public enum DateTimePatternEnum {
 
     private String pattern;
 
-    DateTimePatternEnum(String pattern){
+    DateTimePatternEnum(String pattern) {
         this.pattern = pattern;
     }
 

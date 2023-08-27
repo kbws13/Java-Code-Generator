@@ -1,163 +1,164 @@
 package xyz.kbws.builder;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import xyz.kbws.bean.Constants;
 import xyz.kbws.bean.FieldInfo;
 import xyz.kbws.bean.TableInfo;
-import xyz.kbws.utils.StringUtils;
+import xyz.kbws.builder.BuildComment;
+import xyz.kbws.utils.StringTools;
 
 import java.io.*;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author hsy
- * @date 2023/7/2
- */
 public class BuildService {
-    private static final Logger logger = LoggerFactory.getLogger(BuildService.class);
 
     public static void execute(TableInfo tableInfo) {
+
         File folder = new File(Constants.PATH_SERVICE);
         if (!folder.exists()) {
             folder.mkdirs();
         }
-
-        String className = tableInfo.getBeanName()+"Service";
-        File poFile = new File(folder, className + ".java");
-
+        File beanFile = new File(Constants.PATH_SERVICE, tableInfo.getBeanName() + Constants.SUFFIX_SERVICE + ".java");
         OutputStream out = null;
-        OutputStreamWriter outWrite = null;
+        OutputStreamWriter outw = null;
         BufferedWriter bw = null;
+
         try {
-            out = new FileOutputStream(poFile);
-            outWrite = new OutputStreamWriter(out, "utf8");
-            bw = new BufferedWriter(outWrite);
-
+            out = new FileOutputStream(beanFile);
+            outw = new OutputStreamWriter(out, "utf-8");
+            bw = new BufferedWriter(outw);
             bw.write("package " + Constants.PACKAGE_SERVICE + ";");
-            bw.newLine();
-
-            if (tableInfo.getHaveDateTime() || tableInfo.getHaveDate()) {
-                bw.write("import java.util.Date;");
-                bw.newLine();
-                bw.write(Constants.BEAN_DATE_FORMAT_CLASS);
-                bw.newLine();
-                bw.write(Constants.BEAN_DATE_UNFORMAT_CLASS);
-                bw.newLine();
-                bw.write("import " + Constants.PACKAGE_ENUMS + ".DateTimePatternEnum;");
-                bw.newLine();
-                bw.write("import " + Constants.PACKAGE_UTILS + ".DateUtils;");
-                bw.newLine();
-            }
-
-            bw.write("import "+Constants.PACKAGE_VO+".PaginationResultVO;");
-            bw.newLine();
-            bw.write("import "+Constants.PACKAGE_PO+"."+tableInfo.getBeanName()+";");
-            bw.newLine();
-            bw.write("import "+Constants.PACKAGE_QUERY+"."+tableInfo.getBeanParamName()+";");
             bw.newLine();
             bw.newLine();
             bw.write("import java.util.List;");
             bw.newLine();
-
-
-            BuildComment.createClassComment(bw, tableInfo.getComment()+"Service");
-            bw.write("public interface "+className+"{");
             bw.newLine();
+            bw.write("import " + Constants.PACKAGE_PARAM + "." + tableInfo.getBeanParamName() + ";");
             bw.newLine();
-
-            BuildComment.createFieldComment(bw, "根据条件查询列表");
-            bw.write("\tList<"+tableInfo.getBeanName()+"> findListByParam("+tableInfo.getBeanParamName()+" query);");
+            bw.write("import " + Constants.PACKAGE_BEAN + "." + tableInfo.getBeanName() + ";");
             bw.newLine();
+            bw.write("import " + Constants.PACKAGE_VO + ".PaginationResultVO;");
             bw.newLine();
 
-            BuildComment.createFieldComment(bw, "根据条件查询数量");
-            bw.write("\tInteger findCountByParam("+tableInfo.getBeanParamName()+" query);");
+            //所有属性
+            List<FieldInfo> fieldInfoList = tableInfo.getFieldList();
+            bw = BuildComment.buildClassComment(bw, tableInfo.getComment() + " 业务接口");
             bw.newLine();
-            bw.newLine();
-
-            BuildComment.createFieldComment(bw, "分页查询");
-            bw.write("\tPaginationResultVO<"+tableInfo.getBeanName()+"> findListByPage("+tableInfo.getBeanParamName()+" query);");
-            bw.newLine();
+            bw.write("public interface " + tableInfo.getBeanName() + Constants.SUFFIX_SERVICE + " {");
             bw.newLine();
 
-            BuildComment.createFieldComment(bw, "新增");
-            bw.write("\tInteger add("+tableInfo.getBeanParamName()+" bean);");
+            String beanName = tableInfo.getBeanName();
+
+            //根据条件查询列表
+            bw = BuildComment.buildMethodComment(bw, "根据条件查询列表");
             bw.newLine();
+            bw.write("\tList<" + beanName + "> findListByParam(" + tableInfo.getBeanParamName() + " param);");
+            bw.newLine();
+            //根据条件查询数量
+            bw = BuildComment.buildMethodComment(bw, "根据条件查询列表");
+            bw.newLine();
+            bw.write("\tInteger findCountByParam(" + tableInfo.getBeanParamName() + " param);");
+            bw.newLine();
+            //分页查询的方法
+            bw = BuildComment.buildMethodComment(bw, "分页查询");
+            bw.newLine();
+            bw.write("\tPaginationResultVO<" + beanName + "> findListByPage(" + tableInfo.getBeanParamName()
+                    + " param);");
             bw.newLine();
 
-            BuildComment.createFieldComment(bw, "批量新增");
-            bw.write("\tInteger addBatch(List<"+tableInfo.getBeanParamName()+"> listBean);");
+
+            Map<String, List<FieldInfo>> keyMap = tableInfo.getKeyIndexMap();
+            //新增的方法
+            bw = BuildComment.buildMethodComment(bw, "新增");
             bw.newLine();
+            bw.write("\tInteger add(" + tableInfo.getBeanName() + " bean);");
+            bw.newLine();
+            //批量新增的方法
+            bw = BuildComment.buildMethodComment(bw, "批量新增");
+            bw.newLine();
+            bw.write("\tInteger addBatch(List<" + tableInfo.getBeanName() + "> listBean);");
             bw.newLine();
 
-            BuildComment.createFieldComment(bw, "批量新增/修改");
-            bw.write("\tInteger addOrUpdateBatch(List<"+tableInfo.getBeanParamName()+"> listBean);");
+            bw = BuildComment.buildMethodComment(bw, "批量新增/修改");
             bw.newLine();
+            bw.write("\tInteger addOrUpdateBatch(List<" + tableInfo.getBeanName() + "> listBean);");
             bw.newLine();
 
-            for (Map.Entry<String, List<FieldInfo>> entry : tableInfo.getKeyIndexMap().entrySet()){
-                List<FieldInfo> keyFieldInfoList = entry.getValue();
-                Integer index = 0;
+            bw = BuildComment.buildMethodComment(bw, "多条件更新");
+            bw.newLine();
+            bw.write("\tInteger updateByParam(" + tableInfo.getBeanName() + " bean," + tableInfo.getBeanParamName() + " param);");
+            bw.newLine();
+
+            bw = BuildComment.buildMethodComment(bw, "多条件删除");
+            bw.newLine();
+            bw.write("\tInteger deleteByParam(" + tableInfo.getBeanParamName() + " param);");
+            bw.newLine();
+
+            for (Map.Entry<String, List<FieldInfo>> entry : keyMap.entrySet()) {
+                List<FieldInfo> keyfieldInfoList = entry.getValue();
+                StringBuffer paramStr = new StringBuffer();
                 StringBuffer methodName = new StringBuffer();
-
-                StringBuffer methodParams = new StringBuffer();
-
-                for (FieldInfo fieldInfo : keyFieldInfoList){
-                    index++;
-                    methodName.append(StringUtils.upCaseFirstLetter(fieldInfo.getPropertyName()));
-                    if (index < keyFieldInfoList.size()){
+                int index = 0;
+                for (FieldInfo column : keyfieldInfoList) {
+                    if (index > 0) {
+                        paramStr.append(",");
                         methodName.append("And");
                     }
-
-                    methodParams.append(fieldInfo.getJavaType() +" "+fieldInfo.getPropertyName());
-                    if (index < keyFieldInfoList.size()){
-                        methodParams.append(", ");
-                    }
+                    paramStr.append(column.getJavaType() + " " + column.getPropertyName() + "");
+                    methodName.append(StringTools.upperCaseFirstLetter(column.getPropertyName()));
+                    index++;
                 }
-                //查询
-                BuildComment.createFieldComment(bw, "根据" + methodName + "查询");
-                bw.write("\t"+tableInfo.getBeanName()+" get"+tableInfo.getBeanName()+"By" + methodName + "("+methodParams+");");
-                bw.newLine();
-                bw.newLine();
-                //更新
-                BuildComment.createFieldComment(bw, "根据" + methodName + "更新");
-                bw.write("\tInteger update"+tableInfo.getBeanName()+"By" + methodName + "("+tableInfo.getBeanName()+" bean, "+methodParams+");");
-                bw.newLine();
-                bw.newLine();
-                //删除
-                BuildComment.createFieldComment(bw, "根据" + methodName + "删除");
-                bw.write("\tInteger delete"+tableInfo.getBeanName()+"By" + methodName + "("+methodParams+");");
-                bw.newLine();
-                bw.newLine();
+                if (paramStr.length() > 0) {
+                    //根据主键查询
+                    BuildComment.buildMethodComment(bw, "根据" + methodName + "查询对象");
+                    bw.newLine();
+                    bw.write("\t" + tableInfo.getBeanName() + " get" + tableInfo.getBeanName() + "By" + methodName.toString() + "("
+                            + paramStr.toString() + ");");
+                    bw.newLine();
+                    bw.newLine();
+
+                    //根据主键方法
+                    bw = BuildComment.buildMethodComment(bw, "根据" + methodName + "修改");
+                    bw.newLine();
+                    bw.write("\tInteger update" + tableInfo.getBeanName() + "By" + methodName.toString() + "(" + tableInfo.getBeanName() + " bean,"
+                            + paramStr.toString() + ");");
+                    bw.newLine();
+                    bw.newLine();
+                    //根据主键删除
+                    bw = BuildComment.buildMethodComment(bw, "根据" + methodName + "删除");
+                    bw.newLine();
+                    bw.write("\tInteger delete" + tableInfo.getBeanName() + "By" + methodName.toString() + "(" + paramStr.toString() + ");");
+                    bw.newLine();
+                    bw.newLine();
+
+                }
             }
-
             bw.write("}");
-
             bw.flush();
         } catch (Exception e) {
-            logger.error("创建Service失败", e);
+            e.printStackTrace();
         } finally {
-            if (bw != null) {
-                try {
-                    bw.close();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            if (outWrite != null) {
-                try {
-                    outWrite.close();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            if (out != null) {
+            if (null != out) {
                 try {
                     out.close();
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    e.printStackTrace();
+                }
+            }
+            if (outw != null) {
+                try {
+                    outw.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+
+                }
+            }
+            if (null != bw) {
+                try {
+                    bw.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
         }

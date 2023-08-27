@@ -1,245 +1,303 @@
 package xyz.kbws.builder;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import xyz.kbws.bean.Constants;
 import xyz.kbws.bean.FieldInfo;
 import xyz.kbws.bean.TableInfo;
-import xyz.kbws.utils.StringUtils;
+import xyz.kbws.builder.BuildComment;
+import xyz.kbws.utils.StringTools;
 
 import java.io.*;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author hsy
- * @date 2023/7/3
- */
 public class BuildServiceImpl {
-    private static final Logger logger = LoggerFactory.getLogger(BuildServiceImpl.class);
 
     public static void execute(TableInfo tableInfo) {
+
         File folder = new File(Constants.PATH_SERVICE_IMPL);
         if (!folder.exists()) {
             folder.mkdirs();
         }
-        String interfaceName = tableInfo.getBeanName()+"Service";
-        String className = tableInfo.getBeanName()+"ServiceImpl";
-        File poFile = new File(folder, className + ".java");
-
+        File beanFile = new File(Constants.PATH_SERVICE_IMPL,
+                tableInfo.getBeanName() + Constants.SUFFIX_SERVICE_IMPL + ".java");
         OutputStream out = null;
-        OutputStreamWriter outWrite = null;
+        OutputStreamWriter outw = null;
         BufferedWriter bw = null;
-        try {
-            out = new FileOutputStream(poFile);
-            outWrite = new OutputStreamWriter(out, "utf8");
-            bw = new BufferedWriter(outWrite);
 
+        try {
+            out = new FileOutputStream(beanFile);
+            outw = new OutputStreamWriter(out, "utf-8");
+            bw = new BufferedWriter(outw);
             bw.write("package " + Constants.PACKAGE_SERVICE_IMPL + ";");
             bw.newLine();
-
-            String mapperName = tableInfo.getBeanName()+Constants.SUFFIX_MAPPER;
-            String mapperBeanName = StringUtils.lowCaseFirstLetter(mapperName);
-            bw.write("import "+Constants.PACKAGE_QUERY+".SimplePage;");
-            bw.newLine();
-            bw.write("import "+Constants.PACKAGE_VO+".PaginationResultVO;");
-            bw.newLine();
-            bw.write("import "+Constants.PACKAGE_PO+"."+tableInfo.getBeanName()+";");
-            bw.newLine();
-            bw.write("import "+Constants.PACKAGE_QUERY+"."+tableInfo.getBeanParamName()+";");
-            bw.newLine();
-            bw.write("import "+Constants.PACKAGE_ENUMS+".PageSize;");
-            bw.write("import "+Constants.PACKAGE_MAPPER+"."+mapperName+";");
-            bw.newLine();
-            bw.write("import "+Constants.PACKAGE_SERVICE+"."+interfaceName+";");
-            bw.newLine();
-            bw.write("import org.springframework.stereotype.Service;");
-            bw.newLine();
-            bw.write("import javax.annotation.Resource;");
             bw.newLine();
             bw.write("import java.util.List;");
             bw.newLine();
-
-
-            BuildComment.createClassComment(bw, tableInfo.getComment()+"Service");
-            bw.write("@Service(\""+interfaceName+"\")");
             bw.newLine();
-            bw.write("public class "+className+" implements "+interfaceName+"{");
+            bw.write("import javax.annotation.Resource;");
             bw.newLine();
             bw.newLine();
+            bw.write("import org.springframework.stereotype.Service;");
+            bw.newLine();
+            bw.newLine();
+            bw.write("import " + Constants.PACKAGE_ENUMS + ".PageSize;");
+            bw.newLine();
+            bw.write("import " + Constants.PACKAGE_PARAM + "." + tableInfo.getBeanParamName() + ";");
+            bw.newLine();
+            bw.write("import " + Constants.PACKAGE_BEAN + "." + tableInfo.getBeanName() + ";");
+            bw.newLine();
+            bw.write("import " + Constants.PACKAGE_VO + ".PaginationResultVO;");
+            bw.newLine();
+            bw.write("import " + Constants.PACKAGE_PARAM + ".SimplePage;");
 
+            bw.newLine();
+            bw.write("import " + Constants.PACKAGE_MAPPER + "." + tableInfo.getBeanName() + Constants.SUFFIX_MAPPER
+                    + ";");
+            bw.newLine();
+            bw.write("import " + Constants.PACKAGE_SERVICE + "." + tableInfo.getBeanName() + Constants.SUFFIX_SERVICE
+                    + ";");
+            bw.newLine();
+            bw.write("import " + Constants.PACKAGE_UTILS + ".StringTools;");
+            bw.newLine();
+
+            bw = BuildComment.buildClassComment(bw, tableInfo.getComment() + " 业务接口实现");
+            bw.newLine();
+            String anServiceBean = tableInfo.getBeanName() + Constants.SUFFIX_SERVICE;
+            anServiceBean = anServiceBean.substring(0, 1).toLowerCase() + anServiceBean.substring(1);
+            bw.write("@Service(\"" + anServiceBean + "\")");
+            bw.newLine();
+            bw.write("public class " + tableInfo.getBeanName() + Constants.SUFFIX_SERVICE_IMPL + " implements "
+                    + tableInfo.getBeanName() + Constants.SUFFIX_SERVICE + " {");
+            bw.newLine();
+            bw.newLine();
             bw.write("\t@Resource");
             bw.newLine();
 
-            bw.write("\tprivate "+mapperName+"<"+tableInfo.getBeanName()+","+tableInfo.getBeanParamName()+"> "
-                    +StringUtils.lowCaseFirstLetter(mapperName)+";");
+            String beanName = tableInfo.getBeanName();
+            String paramMapper = beanName + Constants.SUFFIX_MAPPER;
+            paramMapper = paramMapper.substring(0, 1).toLowerCase() + paramMapper.substring(1);
+            bw.write("\tprivate " + tableInfo.getBeanName() + Constants.SUFFIX_MAPPER + "<" + tableInfo.getBeanName()
+                    + ", " + tableInfo.getBeanParamName() + "> " + paramMapper + ";");
             bw.newLine();
 
-            BuildComment.createFieldComment(bw, "根据条件查询列表");
+            //根据条件查询列表
+            bw = BuildComment.buildMethodComment(bw, "根据条件查询列表");
+            bw.newLine();
             bw.write("\t@Override");
             bw.newLine();
-            bw.write("\tpublic List<"+tableInfo.getBeanName()+
-                    "> findListByParam("+tableInfo.getBeanParamName()+" query){");
+            bw.write("\tpublic List<" + beanName + "> findListByParam(" + tableInfo.getBeanParamName() + " param) {");
             bw.newLine();
-            bw.write("\t\treturn this."+mapperBeanName+".selectList(query);");
+            bw.write("\t\treturn this." + paramMapper + ".selectList(param);");
             bw.newLine();
             bw.write("\t}");
             bw.newLine();
 
-            BuildComment.createFieldComment(bw, "根据条件查询数量");
+            //根据条件查询记录数
+            bw = BuildComment.buildMethodComment(bw, "根据条件查询列表");
+            bw.newLine();
             bw.write("\t@Override");
             bw.newLine();
-            bw.write("\tpublic Integer findCountByParam("+tableInfo.getBeanParamName()+" query){");
+            bw.write("\tpublic Integer findCountByParam(" + tableInfo.getBeanParamName() + " param) {");
             bw.newLine();
-            bw.write("\t\treturn this."+mapperBeanName+".selectCount(query);");
+            bw.write("\t\treturn this." + paramMapper + ".selectCount(param);");
             bw.newLine();
             bw.write("\t}");
             bw.newLine();
 
-            BuildComment.createFieldComment(bw, "分页查询");
+            //分页查询的方法
+            bw = BuildComment.buildMethodComment(bw, "分页查询方法");
+            bw.newLine();
             bw.write("\t@Override");
             bw.newLine();
-            bw.write("\tpublic PaginationResultVO<"+tableInfo.getBeanName()+
-                    "> findListByPage("+tableInfo.getBeanParamName()+" query){");
+            bw.write("\tpublic PaginationResultVO<" + beanName + "> findListByPage(" + tableInfo.getBeanParamName()
+                    + " param) {");
             bw.newLine();
-            bw.write("\t\tInteger count = this.findCountByParam(query);");
+            bw.write("\t\tint count = this.findCountByParam(param);");
             bw.newLine();
-            bw.write("\t\tInteger pageSize = query.getPageSize()==null?PageSize.SIZE15.getSize():query.getPageSize();");
+            bw.write("\t\tint pageSize = param.getPageSize() == null ? PageSize.SIZE15.getSize() : param.getPageSize();");
             bw.newLine();
-            bw.write("\t\tSimplePage page = new SimplePage(query.getPageNo(), count, pageSize);");
             bw.newLine();
-            bw.write("\t\tquery.setSimplePage(page);");
+            bw.write("\t\tSimplePage page = new SimplePage(param.getPageNo(), count, pageSize);");
             bw.newLine();
-            bw.write("\t\tList<"+tableInfo.getBeanName()+"> list = this.findListByParam(query);");
+            bw.write("\t\tparam.setSimplePage(page);");
             bw.newLine();
-            bw.write("\t\tPaginationResultVO<"+tableInfo.getBeanName()+"> result = new PaginationResultVO<>(count, page.getPageSize(), page.getPageNo(), page.getPageTotal(), list);");
+            bw.write("\t\tList<" + beanName + "> list = this.findListByParam(param);");
+            bw.newLine();
+            bw.write("\t\tPaginationResultVO<" + beanName + "> result = new PaginationResultVO(count, page.getPageSize(), page.getPageNo(), page.getPageTotal(), list);");
             bw.newLine();
             bw.write("\t\treturn result;");
             bw.newLine();
             bw.write("\t}");
             bw.newLine();
 
-            BuildComment.createFieldComment(bw, "新增");
+            //新增
+            bw = BuildComment.buildMethodComment(bw, "新增");
+            bw.newLine();
             bw.write("\t@Override");
             bw.newLine();
-            bw.write("\tpublic Integer add("+tableInfo.getBeanParamName()+" bean){");
+            bw.write("\tpublic Integer add(" + tableInfo.getBeanName() + " bean) {");
             bw.newLine();
-            bw.write("\t\treturn this."+mapperBeanName+".insert(bean);");
+            bw.write("\t\treturn this." + paramMapper + ".insert(bean);");
             bw.newLine();
             bw.write("\t}");
             bw.newLine();
 
-            BuildComment.createFieldComment(bw, "批量新增");
+            //批量新增
+            bw = BuildComment.buildMethodComment(bw, "批量新增");
+            bw.newLine();
             bw.write("\t@Override");
             bw.newLine();
-            bw.write("\tpublic Integer addBatch(List<"+tableInfo.getBeanParamName()+"> listBean){");
+            bw.write("\tpublic Integer addBatch(List<" + tableInfo.getBeanName() + "> listBean) {");
             bw.newLine();
-            bw.write("\t\tif (listBean==null || listBean.isEmpty()) {");
+            bw.write("\t\tif (listBean == null || listBean.isEmpty()) {");
             bw.newLine();
             bw.write("\t\t\treturn 0;");
             bw.newLine();
             bw.write("\t\t}");
             bw.newLine();
-            bw.write("\t\treturn this."+mapperBeanName+".insertBatch(listBean);");
+            bw.write("\t\treturn this." + paramMapper + ".insertBatch(listBean);");
+
             bw.newLine();
             bw.write("\t}");
             bw.newLine();
 
-            BuildComment.createFieldComment(bw, "批量新增/修改");
+            //批量新增
+            bw = BuildComment.buildMethodComment(bw, "批量新增或者修改");
+            bw.newLine();
             bw.write("\t@Override");
             bw.newLine();
-            bw.write("\tpublic Integer addOrUpdateBatch(List<"+tableInfo.getBeanParamName()+"> listBean){");
+            bw.write("\tpublic Integer addOrUpdateBatch(List<" + tableInfo.getBeanName() + "> listBean) {");
             bw.newLine();
-            bw.write("\t\tif (listBean==null || listBean.isEmpty()) {");
+            bw.write("\t\tif (listBean == null || listBean.isEmpty()) {");
             bw.newLine();
             bw.write("\t\t\treturn 0;");
             bw.newLine();
             bw.write("\t\t}");
             bw.newLine();
-            bw.write("\t\treturn this."+mapperBeanName+".insertOrUpdateBatch(listBean);");
+            bw.write("\t\treturn this." + paramMapper + ".insertOrUpdateBatch(listBean);");
             bw.newLine();
             bw.write("\t}");
             bw.newLine();
 
-            for (Map.Entry<String, List<FieldInfo>> entry : tableInfo.getKeyIndexMap().entrySet()){
-                List<FieldInfo> keyFieldInfoList = entry.getValue();
-                Integer index = 0;
-                StringBuilder methodName = new StringBuilder();
+            //多条件更新
+            bw = BuildComment.buildMethodComment(bw, "多条件更新");
+            bw.newLine();
+            bw.write("\t@Override");
+            bw.newLine();
+            bw.write("\tpublic Integer updateByParam(" + tableInfo.getBeanName() + " bean, " + tableInfo.getBeanParamName() + " param) {");
+            bw.newLine();
+            bw.write("\t\tStringTools.checkParam(param);");
+            bw.newLine();
+            bw.write("\t\treturn this." + paramMapper + ".updateByParam(bean, param);");
+            bw.newLine();
+            bw.write("\t}");
+            bw.newLine();
 
-                StringBuilder methodParams = new StringBuilder();
-                StringBuilder paramsBuilder = new StringBuilder();
-                for (FieldInfo fieldInfo : keyFieldInfoList){
-                    index++;
-                    methodName.append(StringUtils.upCaseFirstLetter(fieldInfo.getPropertyName()));
-                    if (index < keyFieldInfoList.size()){
+            //多条件删除
+            bw = BuildComment.buildMethodComment(bw, "多条件删除");
+            bw.newLine();
+            bw.write("\t@Override");
+            bw.newLine();
+            bw.write("\tpublic Integer deleteByParam(" + tableInfo.getBeanParamName() + " param) {");
+            bw.newLine();
+            bw.write("\t\tStringTools.checkParam(param);");
+            bw.newLine();
+            bw.write("\t\treturn this." + paramMapper + ".deleteByParam(param);");
+            bw.newLine();
+            bw.write("\t}");
+            bw.newLine();
+
+            Map<String, List<FieldInfo>> keyMap = tableInfo.getKeyIndexMap();
+            for (Map.Entry<String, List<FieldInfo>> entry : keyMap.entrySet()) {
+                List<FieldInfo> keyColumnList = entry.getValue();
+                StringBuffer paramStr = new StringBuffer();
+                StringBuffer paramValueStr = new StringBuffer();
+                StringBuffer methodName = new StringBuffer();
+                int index = 0;
+                for (FieldInfo column : keyColumnList) {
+                    if (index > 0) {
+                        paramStr.append(", ");
                         methodName.append("And");
+                        paramValueStr.append(", ");
                     }
-
-                    methodParams.append(fieldInfo.getJavaType() +" "+fieldInfo.getPropertyName());
-                    paramsBuilder.append(fieldInfo.getPropertyName());
-                    if (index < keyFieldInfoList.size()){
-                        methodParams.append(", ");
-                        paramsBuilder.append(", ");
-                    }
+                    paramStr.append(column.getJavaType() + " " + column.getPropertyName());
+                    paramValueStr.append(column.getPropertyName());
+                    methodName.append(StringTools.upperCaseFirstLetter(column.getPropertyName()));
+                    index++;
                 }
-                //查询
-                BuildComment.createFieldComment(bw, "根据" + methodName + "查询");
-                bw.write("\t@Override");
-                bw.newLine();
-                bw.write("\tpublic "+tableInfo.getBeanName()+" get"+tableInfo.getBeanName()+"By" + methodName + "("+methodParams+"){");
-                bw.newLine();
-                bw.write("\t\treturn this."+mapperBeanName+".selectBy"+methodName+"("+paramsBuilder+");");
-                bw.newLine();
-                bw.write("\t}");
-                bw.newLine();
-                //更新
-                BuildComment.createFieldComment(bw, "根据" + methodName + "更新");
-                bw.write("\t@Override");
-                bw.newLine();
-                bw.write("\tpublic Integer update"+tableInfo.getBeanName()+"By" + methodName +
-                        "("+tableInfo.getBeanName()+" bean, "+methodParams+"){");
-                bw.newLine();
-                bw.write("\t\treturn this."+mapperBeanName+".updateBy"+methodName+"(bean,"+paramsBuilder+");");
-                bw.newLine();
-                bw.write("\t}");
-                bw.newLine();
-                //删除
-                BuildComment.createFieldComment(bw, "根据" + methodName + "删除");
-                bw.write("\t@Override");
-                bw.newLine();
-                bw.write("\tpublic Integer delete"+tableInfo.getBeanName()+"By" + methodName + "("+methodParams+"){");
-                bw.newLine();
-                bw.write("\t\treturn this."+mapperBeanName+".deleteBy"+methodName+"("+paramsBuilder+");");
-                bw.newLine();
-                bw.write("\t}");
-                bw.newLine();
+                if (paramStr.length() > 0) {
+                    //根据主键查询
+                    BuildComment.buildMethodComment(bw, "根据" + methodName + "获取对象");
+                    bw.newLine();
+                    bw.write("\t@Override");
+                    bw.newLine();
+                    bw.write("\tpublic " + tableInfo.getBeanName() + " get" + tableInfo.getBeanName() + "By" + methodName.toString() + "("
+                            + paramStr.toString() + ") {");
+                    bw.newLine();
+                    bw.write("\t\treturn this." + paramMapper + ".selectBy" + methodName.toString() + "(" + paramValueStr.toString() + ");");
+
+                    bw.newLine();
+                    bw.write("\t}");
+                    bw.newLine();
+
+
+                    //根据主键修改
+                    bw = BuildComment.buildMethodComment(bw, "根据" + methodName + "修改");
+                    bw.newLine();
+                    bw.write("\t@Override");
+                    bw.newLine();
+                    bw.write("\tpublic Integer update" + tableInfo.getBeanName() + "By" + methodName.toString() + "(" + tableInfo.getBeanName() + " bean, "
+                            + paramStr.toString() + ") {");
+                    bw.newLine();
+                    bw.write("\t\treturn this." + paramMapper + ".updateBy" + methodName.toString() + "(bean, " + paramValueStr.toString() + ");");
+
+
+                    bw.newLine();
+                    bw.write("\t}");
+                    bw.newLine();
+
+
+                    //根据主键删除
+                    bw = BuildComment.buildMethodComment(bw, "根据" + methodName + "删除");
+                    bw.newLine();
+                    bw.write("\t@Override");
+                    bw.newLine();
+                    bw.write("\tpublic Integer delete" + tableInfo.getBeanName() + "By" + methodName.toString() + "(" + paramStr.toString() + ") {");
+                    bw.newLine();
+                    bw.write("\t\treturn this." + paramMapper + ".deleteBy" + methodName.toString() + "(" + paramValueStr.toString() + ");");
+
+                    bw.newLine();
+                    bw.write("\t}");
+                    bw.newLine();
+                }
             }
 
             bw.write("}");
-
             bw.flush();
         } catch (Exception e) {
-            logger.error("创建Service Impl失败", e);
+            e.printStackTrace();
         } finally {
-            if (bw != null) {
-                try {
-                    bw.close();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            if (outWrite != null) {
-                try {
-                    outWrite.close();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            if (out != null) {
+            if (null != out) {
                 try {
                     out.close();
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    e.printStackTrace();
+                }
+            }
+            if (outw != null) {
+                try {
+                    outw.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+
+                }
+            }
+            if (null != bw) {
+                try {
+                    bw.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
         }

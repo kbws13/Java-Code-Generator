@@ -1,20 +1,31 @@
 package xyz.kbws.bean;
 
-/**
- * @author hsy
- * @date 2023/6/25
- */
 public class FieldInfo {
-    //字段名称
+    /**
+     * 字段名称
+     */
     private String FieldName;
-    //bean属性名称
+
+    /**
+     * bean属性名称
+     */
     private String propertyName;
+
     private String sqlType;
-    //字段类型
+
+    /**
+     * 字段类型
+     */
     private String javaType;
-    //字段备注
+
+    /**
+     * 字段备注
+     */
     private String comment;
-    //字段是否自增长
+
+    /**
+     * 字段是否是自增长
+     */
     private Boolean isAutoIncrement;
 
     public String getFieldName() {
@@ -33,22 +44,6 @@ public class FieldInfo {
         this.propertyName = propertyName;
     }
 
-    public String getSqlType() {
-        return sqlType;
-    }
-
-    public void setSqlType(String sqlType) {
-        this.sqlType = sqlType;
-    }
-
-    public String getJavaType() {
-        return javaType;
-    }
-
-    public void setJavaType(String javaType) {
-        this.javaType = javaType;
-    }
-
     public String getComment() {
         return comment;
     }
@@ -63,5 +58,21 @@ public class FieldInfo {
 
     public void setAutoIncrement(Boolean autoIncrement) {
         isAutoIncrement = autoIncrement;
+    }
+
+    public String getSqlType() {
+        return sqlType;
+    }
+
+    public void setSqlType(String sqlType) {
+        this.sqlType = sqlType;
+    }
+
+    public String getJavaType() {
+        return javaType;
+    }
+
+    public void setJavaType(String javaType) {
+        this.javaType = javaType;
     }
 }

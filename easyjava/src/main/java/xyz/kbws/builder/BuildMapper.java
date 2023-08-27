@@ -1,122 +1,107 @@
 package xyz.kbws.builder;
 
-import org.apache.commons.lang3.ArrayUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
 import xyz.kbws.bean.Constants;
 import xyz.kbws.bean.FieldInfo;
 import xyz.kbws.bean.TableInfo;
-import xyz.kbws.utils.DateUtils;
-import xyz.kbws.utils.StringUtils;
+import xyz.kbws.builder.BuildComment;
+import xyz.kbws.utils.StringTools;
 
 import java.io.*;
 import java.util.List;
 import java.util.Map;
 
-/**
- * @author hsy
- * @date 2023/6/29
- */
 public class BuildMapper {
-    private static final Logger logger = LoggerFactory.getLogger(BuildMapper.class);
 
     public static void execute(TableInfo tableInfo) {
+
         File folder = new File(Constants.PATH_MAPPER);
         if (!folder.exists()) {
             folder.mkdirs();
         }
-
-        String className = tableInfo.getBeanName() + Constants.SUFFIX_MAPPER;
-        File poFile = new File(folder, className + ".java");
-
+        File beanFile = new File(Constants.PATH_MAPPER, tableInfo.getBeanName() + Constants.SUFFIX_MAPPER + ".java");
         OutputStream out = null;
-        OutputStreamWriter outWrite = null;
+        OutputStreamWriter outw = null;
         BufferedWriter bw = null;
-        try {
-            out = new FileOutputStream(poFile);
-            outWrite = new OutputStreamWriter(out, "utf8");
-            bw = new BufferedWriter(outWrite);
 
+        try {
+            out = new FileOutputStream(beanFile);
+            outw = new OutputStreamWriter(out, "utf-8");
+            bw = new BufferedWriter(outw);
             bw.write("package " + Constants.PACKAGE_MAPPER + ";");
             bw.newLine();
             bw.newLine();
-
             bw.write("import org.apache.ibatis.annotations.Param;");
+            bw = BuildComment.buildClassComment(bw, tableInfo.getComment() + " 数据库操作接口");
             bw.newLine();
-            bw.write("import org.apache.ibatis.annotations.Mapper;");
-            bw.newLine();
+            bw.write("public interface " + tableInfo.getBeanName() + Constants.SUFFIX_MAPPER + "<T,P> extends Base"
+                    + Constants.SUFFIX_MAPPER + "<T,P> {");
+
             bw.newLine();
 
-            //构建类注释
-            BuildComment.createClassComment(bw, tableInfo.getComment()+"Mapper");
-            bw.write("@Mapper");
-            bw.newLine();
-            bw.write("public interface " + className + "<T, P> extends BaseMapper {");
-            bw.newLine();
-
-            Map<String, List<FieldInfo>> keyIndexMap = tableInfo.getKeyIndexMap();
-
-            for (Map.Entry<String, List<FieldInfo>> entry : keyIndexMap.entrySet()){
-                List<FieldInfo> keyFieldInfoList = entry.getValue();
-                Integer index = 0;
+            Map<String, List<FieldInfo>> keyMap = tableInfo.getKeyIndexMap();
+            for (Map.Entry<String, List<FieldInfo>> entry : keyMap.entrySet()) {
+                List<FieldInfo> keyColumnList = entry.getValue();
+                StringBuffer paramStr = new StringBuffer();
                 StringBuffer methodName = new StringBuffer();
-
-                StringBuffer methodParams = new StringBuffer();
-
-                for (FieldInfo fieldInfo : keyFieldInfoList){
-                    index++;
-                    methodName.append(StringUtils.upCaseFirstLetter(fieldInfo.getPropertyName()));
-                    if (index < keyFieldInfoList.size()){
+                int index = 0;
+                for (FieldInfo column : keyColumnList) {
+                    if (index > 0) {
+                        paramStr.append(",");
                         methodName.append("And");
                     }
-
-                    methodParams.append("@Param(\""+fieldInfo.getPropertyName()+"\") "+fieldInfo.getJavaType()
-                            +" "+fieldInfo.getPropertyName());
-                    if (index < keyFieldInfoList.size()){
-                        methodParams.append(", ");
-                    }
+                    paramStr.append("@Param(\"" + column.getPropertyName() + "\") " + column.getJavaType() + " "
+                            + column.getPropertyName() + "");
+                    methodName.append(StringTools.upperCaseFirstLetter(column.getPropertyName()));
+                    index++;
                 }
-                //查询
-                BuildComment.createFieldComment(bw, "根据" + methodName + "查询");
-                bw.write("\tT selectBy" + methodName + "("+methodParams+");");
-                bw.newLine();
-                bw.newLine();
-                //更新
-                BuildComment.createFieldComment(bw, "根据" + methodName + "更新");
-                bw.write("\tInteger updateBy" + methodName + "(@Param(\"bean\") T t, "+methodParams+");");
-                bw.newLine();
-                bw.newLine();
-                //删除
-                BuildComment.createFieldComment(bw, "根据" + methodName + "删除");
-                bw.write("\tInteger deleteBy" + methodName + "("+methodParams+");");
-                bw.newLine();
-                bw.newLine();
-            }
+                if (paramStr.length() > 0) {
+                    BuildComment.buildMethodComment(bw, "根据" + methodName + "更新");
+                    bw.newLine();
+                    bw.write("\t Integer updateBy" + methodName.toString() + "(@Param(\"bean\") T t," + paramStr.toString
+                            () + ")" + ";");
+                    bw.newLine();
+                    bw.newLine();
 
+                    BuildComment.buildMethodComment(bw, "根据" + methodName + "删除");
+                    bw.newLine();
+                    bw.write("\t Integer deleteBy" + methodName.toString() + "(" + paramStr.toString() + ");");
+                    bw.newLine();
+                    bw.newLine();
+                    BuildComment.buildMethodComment(bw, "根据" + methodName + "获取对象");
+                    bw.newLine();
+                    bw.write("\t T selectBy" + methodName.toString() + "(" + paramStr.toString() + ");");
+                    bw.newLine();
+                    bw.newLine();
+                }
+            }
+            bw.newLine();
             bw.write("}");
+            bw.newLine();
             bw.flush();
         } catch (Exception e) {
-            logger.error("创建mapper失败", e);
+            e.printStackTrace();
         } finally {
-            if (bw != null) {
-                try {
-                    bw.close();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            if (outWrite != null) {
-                try {
-                    outWrite.close();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-            if (out != null) {
+            if (null != out) {
                 try {
                     out.close();
                 } catch (IOException e) {
-                    throw new RuntimeException(e);
+                    e.printStackTrace();
+                }
+            }
+            if (outw != null) {
+                try {
+                    outw.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+
+                }
+            }
+            if (null != bw) {
+                try {
+                    bw.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
         }

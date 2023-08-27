@@ -1,40 +1,53 @@
 package xyz.kbws.builder;
 
-import xyz.kbws.bean.Constants;
-import xyz.kbws.utils.DateUtils;
-
 import java.io.BufferedWriter;
-import java.text.SimpleDateFormat;
-import java.util.Date;
+import java.io.IOException;
 
-/**
- * @author hsy
- * @date 2023/6/26
- */
 public class BuildComment {
-    public static void createClassComment(BufferedWriter bw, String classComment) throws Exception{
+    /**
+     * 构建类上面的注释
+     *
+     * @param bw
+     * @param text
+     * @return
+     * @throws IOException
+     */
+    public static BufferedWriter buildClassComment(BufferedWriter bw, String text) throws IOException {
+        bw.newLine();
+        bw.newLine();
         bw.write("/**");
         bw.newLine();
-        bw.write(" * @Description " + classComment);
-        bw.newLine();
-        bw.write(" * @author " + Constants.AUTHOR);
-        bw.newLine();
-        bw.write(" * @Date " + DateUtils.format(new Date(), DateUtils._YYYYMMDD));
+        bw.write(" * " + text);
         bw.newLine();
         bw.write(" */");
-        bw.newLine();
+        return bw;
     }
 
-    public static void createFieldComment(BufferedWriter bw, String fieldComment) throws Exception{
+    public static BufferedWriter buildPropertyComment(BufferedWriter bw, String text) throws IOException {
+        bw.newLine();
         bw.write("\t/**");
         bw.newLine();
-        bw.write("\t * " + (fieldComment == null ? "" : fieldComment));
+        bw.write("\t * " + text);
         bw.newLine();
         bw.write("\t */");
-        bw.newLine();
+        return bw;
     }
 
-    public static void createMethodComment(){
-
+    /**
+     * 构建方法上面的注释
+     *
+     * @param bw
+     * @param text
+     * @return
+     * @throws IOException
+     */
+    public static BufferedWriter buildMethodComment(BufferedWriter bw, String text) throws IOException {
+        bw.newLine();
+        bw.write("\t/**");
+        bw.newLine();
+        bw.write("\t * " + text);
+        bw.newLine();
+        bw.write("\t */");
+        return bw;
     }
 }

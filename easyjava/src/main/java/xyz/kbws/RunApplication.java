@@ -1,34 +1,43 @@
 package xyz.kbws;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import xyz.kbws.bean.TableInfo;
 import xyz.kbws.builder.*;
+import xyz.kbws.utils.PropertiesUtils;
 
 import java.util.List;
 
-/**
- * @author hsy
- * @date 2023/6/25
- */
 public class RunApplication {
+    private static final Logger logger = LoggerFactory.getLogger(RunApplication.class);
+
     public static void main(String[] args) {
-        List<TableInfo> tableInfoList = BuildTable.getTables();
 
-        BuildBase.execute();
+        logger.info("开始生成代码......");
+        try {
+            //构建基础类
+            BuildBaseJava.execute();
 
-        for (TableInfo tableInfo : tableInfoList) {
-            BuildPo.execute(tableInfo);
-
-            BuildQuery.execute(tableInfo);
-
-            BuildMapper.execute(tableInfo);
-
-            BuildMapperXml.execute(tableInfo);
-
-            BuildService.execute(tableInfo);
-
-            BuildServiceImpl.execute(tableInfo);
-
-            BuildController.execute(tableInfo);
+            List<TableInfo> tableInfoList = new BuildTable().getTables();
+            for (TableInfo tableInfo : tableInfoList) {
+                //构建bean
+                BuildBeanPo.execute(tableInfo);
+                //构建query对象
+                BuildBeanQuery.execute(tableInfo);
+                //构建mapper
+                BuildMapper.execute(tableInfo);
+                //构建mapper xml
+                BuildMapperXml.execute(tableInfo);
+                //构建service
+                BuildService.execute(tableInfo);
+                //构建serviceImpl
+                BuildServiceImpl.execute(tableInfo);
+                //构建controller
+                BuildController.execute(tableInfo);
+            }
+            logger.info("生成代码成功，代码在->" + PropertiesUtils.getString("path.base"));
+        } catch (Exception e) {
+            logger.error("生成代码失败，错误信息:", e);
         }
     }
 }
